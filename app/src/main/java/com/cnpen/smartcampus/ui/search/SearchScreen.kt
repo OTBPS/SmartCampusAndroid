@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cnpen.smartcampus.data.model.PoiCategory
 import com.cnpen.smartcampus.data.model.SearchSortOption
 import com.cnpen.smartcampus.ui.components.PoiListItemCard
@@ -43,8 +45,9 @@ import com.cnpen.smartcampus.ui.components.PoiListItemCard
 @Composable
 fun SearchScreen(
     onPoiClick: (String) -> Unit,
+    onOpenMapWithPoi: (String) -> Unit,
     contentPadding: PaddingValues,
-    viewModel: SearchViewModel = viewModel()
+    viewModel: SearchViewModel
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     var sortExpanded by remember { mutableStateOf(false) }
@@ -71,7 +74,7 @@ fun SearchScreen(
                 value = uiState.query,
                 onValueChange = viewModel::onQueryChange,
                 label = { Text(text = "Search places") },
-                placeholder = { Text(text = "Enter keyword or building") },
+                placeholder = { Text(text = "Find library, cafeteria, dormitory, service hall...") },
                 trailingIcon = {
                     if (uiState.query.isNotBlank()) {
                         IconButton(onClick = viewModel::clearQuery) {
@@ -83,6 +86,12 @@ fun SearchScreen(
                     }
                 },
                 singleLine = true
+            )
+
+            Text(
+                text = "Search by keyword, then refine with category and sorting.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             LazyRow(
@@ -104,70 +113,110 @@ fun SearchScreen(
                 }
             }
 
-            Box {
-                OutlinedButton(
-                    onClick = { sortExpanded = true }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Tune,
-                        contentDescription = "Sort options"
-                    )
-                    Text(
-                        text = "Sort: ${uiState.selectedSort.label}",
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = sortExpanded,
-                    onDismissRequest = { sortExpanded = false }
-                ) {
-                    SearchSortOption.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = { Text(text = option.label) },
-                            onClick = {
-                                viewModel.onSelectSort(option)
-                                sortExpanded = false
-                            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box {
+                    OutlinedButton(
+                        onClick = { sortExpanded = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Tune,
+                            contentDescription = "Sort options"
                         )
+                        Text(
+                            text = "Sort: ${uiState.selectedSort.label}",
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = sortExpanded,
+                        onDismissRequest = { sortExpanded = false }
+                    ) {
+                        SearchSortOption.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(text = option.label) },
+                                onClick = {
+                                    viewModel.onSelectSort(option)
+                                    sortExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                if (uiState.hasActiveFilters) {
+                    TextButton(onClick = viewModel::resetFilters) {
+                        Text(text = "Reset Filters")
                     }
                 }
             }
 
             Text(
-                text = "Results (${uiState.results.size})",
+                text = "Results: ${uiState.resultCount}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
-            if (uiState.results.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+            when (uiState.displayState) {
+                SearchDisplayState.DEFAULT -> {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Browsing all places. Enter a keyword or select a category to narrow results.",
+                            modifier = Modifier.padding(14.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                SearchDisplayState.FILTERED -> {
                     Text(
-                        text = "No places found",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Try a different keyword or category.",
+                        text = "Filtered results are shown below.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(uiState.results, key = { it.id }) { poi ->
-                        PoiListItemCard(
-                            poi = poi,
-                            onClick = { onPoiClick(poi.id) }
-                        )
+
+                SearchDisplayState.NO_RESULTS -> {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "No matching places found",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Try a different keyword, switch category, or reset filters.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(onClick = viewModel::resetFilters) {
+                                Text(text = "Reset Filters")
+                            }
+                        }
                     }
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(uiState.results, key = { it.poi.id }) { item ->
+                    PoiListItemCard(
+                        poi = item.poi,
+                        onClick = { onPoiClick(item.poi.id) },
+                        showFavoriteAction = true,
+                        isFavorite = item.isFavorite,
+                        onFavoriteToggle = { viewModel.onToggleFavorite(item.poi.id) },
+                        onViewOnMap = {
+                            viewModel.onOpenOnMap(item.poi.id)
+                            onOpenMapWithPoi(item.poi.id)
+                        }
+                    )
                 }
             }
         }

@@ -1,9 +1,35 @@
-.gradle/
-/local.properties
-/.idea/
-/.kotlin/
-/.DS_Store
-/build/
-/captures/
+# Android Studio / IntelliJ
+.idea/
 *.iml
+
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+**/build/
 app/build/
+/build/
+/app/build/
+
+# Local machine config
+local.properties
+
+# Generated artifacts
+captures/
+*.apk
+*.ap_
+*.aab
+*.zip
+
+# Signing files
+*.jks
+*.keystore
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Keep Gradle wrapper tracked
+!gradle/wrapper/gradle-wrapper.jar

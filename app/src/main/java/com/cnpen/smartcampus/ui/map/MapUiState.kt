@@ -6,5 +6,6 @@ data class MapUiState(
     val title: String = "Campus Map",
     val mapPlaceholderText: String = "Future Amap map area",
     val selectedPoi: Poi? = null,
-    val focusStatus: String = "Map focus is ready for future marker integration."
+    val focusStatus: String = "Map focus is ready for future marker integration.",
+    val destinationHint: String = "Choose a destination from Search or Place Detail."
 )

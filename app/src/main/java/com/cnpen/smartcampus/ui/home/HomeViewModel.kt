@@ -2,15 +2,15 @@ package com.cnpen.smartcampus.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cnpen.smartcampus.data.repository.CampusRepositoryProvider
+import com.cnpen.smartcampus.data.repository.CampusRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-class HomeViewModel : ViewModel() {
-    private val repository = CampusRepositoryProvider.repository
-
+class HomeViewModel(
+    private val repository: CampusRepository
+) : ViewModel() {
     val uiState: StateFlow<HomeUiState> = combine(
         repository.observePois(),
         repository.observeFavoriteIds()

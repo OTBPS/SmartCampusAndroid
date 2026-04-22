@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.cnpen.smartcampus.data.model.Poi
 import com.cnpen.smartcampus.data.model.PoiCategory
 import com.cnpen.smartcampus.data.model.SearchSortOption
-import com.cnpen.smartcampus.data.repository.CampusRepositoryProvider
+import com.cnpen.smartcampus.data.repository.CampusRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,28 +13,43 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-class SearchViewModel : ViewModel() {
-    private val repository = CampusRepositoryProvider.repository
+class SearchViewModel(
+    private val repository: CampusRepository
+) : ViewModel() {
     private val queryState = MutableStateFlow("")
     private val categoryState = MutableStateFlow<PoiCategory?>(null)
     private val sortState = MutableStateFlow(SearchSortOption.POPULARITY)
 
     val uiState: StateFlow<SearchUiState> = combine(
         repository.observePois(),
+        repository.observeFavoriteIds(),
         queryState,
         categoryState,
         sortState
-    ) { pois, query, category, sort ->
+    ) { pois, favoriteIds, query, category, sort ->
         val filtered = pois
             .filterByQuery(query)
             .filterByCategory(category)
             .sortedByOption(sort)
 
+        val displayState = when {
+            filtered.isEmpty() && (query.isNotBlank() || category != null) -> SearchDisplayState.NO_RESULTS
+            query.isBlank() && category == null -> SearchDisplayState.DEFAULT
+            else -> SearchDisplayState.FILTERED
+        }
+
         SearchUiState(
             query = query,
             selectedCategory = category,
             selectedSort = sort,
-            results = filtered
+            results = filtered.map { poi ->
+                SearchResultUiModel(
+                    poi = poi,
+                    isFavorite = favoriteIds.contains(poi.id)
+                )
+            },
+            resultCount = filtered.size,
+            displayState = displayState
         )
     }.stateIn(
         scope = viewModelScope,
@@ -57,6 +72,20 @@ class SearchViewModel : ViewModel() {
     fun clearQuery() {
         queryState.update { "" }
     }
+
+    fun resetFilters() {
+        queryState.value = ""
+        categoryState.value = null
+        sortState.value = SearchSortOption.POPULARITY
+    }
+
+    fun onToggleFavorite(poiId: String) {
+        repository.toggleFavorite(poiId)
+    }
+
+    fun onOpenOnMap(poiId: String) {
+        repository.setSelectedMapPoi(poiId)
+    }
 }
 
 private fun List<Poi>.filterByQuery(query: String): List<Poi> {
@@ -77,7 +106,8 @@ private fun List<Poi>.filterByCategory(category: PoiCategory?): List<Poi> {
 
 private fun List<Poi>.sortedByOption(sort: SearchSortOption): List<Poi> =
     when (sort) {
+        SearchSortOption.NAME_ASC -> sortedBy { it.name.lowercase() }
+        SearchSortOption.NAME_DESC -> sortedByDescending { it.name.lowercase() }
+        SearchSortOption.CATEGORY -> sortedWith(compareBy({ it.category.label }, { it.name.lowercase() }))
         SearchSortOption.POPULARITY -> sortedByDescending { it.popularity }
-        SearchSortOption.NAME_ASC -> sortedBy { it.name }
-        SearchSortOption.UPDATED_DESC -> sortedByDescending { it.updatedAt }
     }

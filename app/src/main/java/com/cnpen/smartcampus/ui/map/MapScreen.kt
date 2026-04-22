@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,13 +29,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     contentPadding: PaddingValues,
-    viewModel: MapViewModel = viewModel()
+    onViewDetailClick: (String) -> Unit,
+    viewModel: MapViewModel
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
 
@@ -93,13 +94,17 @@ fun MapScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "Selected Place",
+                        text = "Chosen Destination",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
+                    Text(
+                        text = uiState.destinationHint,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     if (uiState.selectedPoi == null) {
                         Text(
-                            text = "No place selected yet. Open a detail page and choose View on Map.",
+                            text = "No place selected yet.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
@@ -109,9 +114,14 @@ fun MapScreen(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "${uiState.selectedPoi.building} • ${uiState.selectedPoi.category.label}",
+                            text = "${uiState.selectedPoi.building} - ${uiState.selectedPoi.category.label}",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        TextButton(
+                            onClick = { onViewDetailClick(uiState.selectedPoi.id) }
+                        ) {
+                            Text(text = "View Detail")
+                        }
                     }
                 }
             }

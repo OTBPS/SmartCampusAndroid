@@ -27,14 +27,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.Icon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AssistantScreen(
     contentPadding: PaddingValues,
-    viewModel: AssistantViewModel = viewModel()
+    viewModel: AssistantViewModel
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
 

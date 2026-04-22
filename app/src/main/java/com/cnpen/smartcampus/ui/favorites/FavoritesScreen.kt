@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cnpen.smartcampus.ui.components.PoiListItemCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +27,7 @@ fun FavoritesScreen(
     onPoiClick: (String) -> Unit,
     onExploreSearchClick: () -> Unit,
     contentPadding: PaddingValues,
-    viewModel: FavoritesViewModel = viewModel()
+    viewModel: FavoritesViewModel
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
 
@@ -79,7 +78,10 @@ fun FavoritesScreen(
                     PoiListItemCard(
                         modifier = Modifier.fillMaxWidth(),
                         poi = poi,
-                        onClick = { onPoiClick(poi.id) }
+                        onClick = { onPoiClick(poi.id) },
+                        showFavoriteAction = true,
+                        isFavorite = true,
+                        onFavoriteToggle = { viewModel.onRemoveFavorite(poi.id) }
                     )
                 }
             }

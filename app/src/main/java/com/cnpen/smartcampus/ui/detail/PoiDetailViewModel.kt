@@ -3,7 +3,7 @@ package com.cnpen.smartcampus.ui.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cnpen.smartcampus.data.repository.CampusRepositoryProvider
+import com.cnpen.smartcampus.data.repository.CampusRepository
 import com.cnpen.smartcampus.navigation.AppDestination
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 class PoiDetailViewModel(
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val repository: CampusRepository
 ) : ViewModel() {
-    private val repository = CampusRepositoryProvider.repository
     private val poiId: String? = savedStateHandle[AppDestination.PoiDetail.POI_ID_ARG]
 
     val uiState: StateFlow<PoiDetailUiState> = combine(

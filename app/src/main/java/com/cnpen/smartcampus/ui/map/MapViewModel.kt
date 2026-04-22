@@ -2,16 +2,17 @@ package com.cnpen.smartcampus.ui.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cnpen.smartcampus.data.repository.CampusRepositoryProvider
+import com.cnpen.smartcampus.data.repository.CampusRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-class MapViewModel : ViewModel() {
-    private val repository = CampusRepositoryProvider.repository
-    private val locationStatus = MutableStateFlow("Tap the location button to center future map focus.")
+class MapViewModel(
+    private val repository: CampusRepository
+) : ViewModel() {
+    private val locationStatus = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<MapUiState> = combine(
         repository.observePois(),
@@ -19,9 +20,20 @@ class MapViewModel : ViewModel() {
         locationStatus
     ) { pois, selectedPoiId, status ->
         val selectedPoi = selectedPoiId?.let { id -> pois.firstOrNull { it.id == id } }
+        val focusMessage = status ?: if (selectedPoi == null) {
+            "No destination focus is set yet."
+        } else {
+            "Selected destination is prepared for future Amap marker focus."
+        }
+        val destinationHint = if (selectedPoi == null) {
+            "Choose a place from Search or open View on Map from Place Detail."
+        } else {
+            "Chosen destination: ${selectedPoi.name} (${selectedPoi.category.label})"
+        }
         MapUiState(
             selectedPoi = selectedPoi,
-            focusStatus = status
+            focusStatus = focusMessage,
+            destinationHint = destinationHint
         )
     }.stateIn(
         scope = viewModelScope,
@@ -30,6 +42,6 @@ class MapViewModel : ViewModel() {
     )
 
     fun onLocateClick() {
-        locationStatus.value = "Location placeholder triggered. Amap current-location mode will be connected in a future round."
+        locationStatus.value = "Location action triggered. Future Amap current-location behavior will be connected here."
     }
 }

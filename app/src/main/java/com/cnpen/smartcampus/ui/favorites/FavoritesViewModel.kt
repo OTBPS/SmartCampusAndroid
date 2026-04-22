@@ -2,15 +2,15 @@ package com.cnpen.smartcampus.ui.favorites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.cnpen.smartcampus.data.repository.CampusRepositoryProvider
+import com.cnpen.smartcampus.data.repository.CampusRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-class FavoritesViewModel : ViewModel() {
-    private val repository = CampusRepositoryProvider.repository
-
+class FavoritesViewModel(
+    private val repository: CampusRepository
+) : ViewModel() {
     val uiState: StateFlow<FavoritesUiState> = combine(
         repository.observePois(),
         repository.observeFavoriteIds()
@@ -22,4 +22,8 @@ class FavoritesViewModel : ViewModel() {
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = FavoritesUiState()
     )
+
+    fun onRemoveFavorite(poiId: String) {
+        repository.removeFavorite(poiId)
+    }
 }
