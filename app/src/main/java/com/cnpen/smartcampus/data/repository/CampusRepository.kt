@@ -7,9 +7,13 @@ interface CampusRepository {
     fun observePois(): StateFlow<List<Poi>>
     fun observeFavoriteIds(): StateFlow<Set<String>>
     fun observeSelectedMapPoiId(): StateFlow<String?>
+    fun observeIsLoading(): StateFlow<Boolean>
+    fun observeErrorMessage(): StateFlow<String?>
+    fun observeDataSourceLabel(): StateFlow<String>
     fun getPoiById(poiId: String): Poi?
     fun addFavorite(poiId: String)
     fun removeFavorite(poiId: String)
     fun toggleFavorite(poiId: String)
     fun setSelectedMapPoi(poiId: String?)
+    fun clearError()
 }

@@ -1,7 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.gms.google-services")
 }
+
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use(localProperties::load)
+}
+val amapApiKey = localProperties.getProperty("AMAP_API_KEY", "")
 
 android {
     namespace = "com.cnpen.smartcampus"
@@ -18,6 +32,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        manifestPlaceholders["AMAP_API_KEY"] = amapApiKey
     }
 
     buildTypes {
@@ -48,8 +63,10 @@ android {
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.09.00")
+    val firebaseBom = platform("com.google.firebase:firebase-bom:34.4.0")
     implementation(composeBom)
     androidTestImplementation(composeBom)
+    implementation(firebaseBom)
 
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
@@ -60,6 +77,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.amap.api:3dmap:10.0.600")
     implementation("io.coil-kt:coil:2.7.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
 
@@ -74,4 +93,6 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+
 }

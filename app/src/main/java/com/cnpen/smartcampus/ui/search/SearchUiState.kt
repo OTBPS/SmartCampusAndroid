@@ -21,7 +21,10 @@ data class SearchUiState(
     val selectedSort: SearchSortOption = SearchSortOption.POPULARITY,
     val results: List<SearchResultUiModel> = emptyList(),
     val resultCount: Int = 0,
-    val displayState: SearchDisplayState = SearchDisplayState.DEFAULT
+    val displayState: SearchDisplayState = SearchDisplayState.DEFAULT,
+    val isLoading: Boolean = false,
+    val errorMessage: String? = null,
+    val dataSourceLabel: String = "Local fake data"
 ) {
     val hasActiveFilters: Boolean
         get() = query.isNotBlank() || selectedCategory != null || selectedSort != SearchSortOption.POPULARITY

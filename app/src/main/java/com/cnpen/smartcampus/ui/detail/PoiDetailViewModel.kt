@@ -18,19 +18,33 @@ class PoiDetailViewModel(
 
     val uiState: StateFlow<PoiDetailUiState> = combine(
         repository.observePois(),
-        repository.observeFavoriteIds()
-    ) { pois, favoriteIds ->
+        repository.observeFavoriteIds(),
+        repository.observeIsLoading(),
+        repository.observeErrorMessage(),
+        repository.observeDataSourceLabel()
+    ) { pois, favoriteIds, isLoading, errorMessage, dataSourceLabel ->
         val currentPoiId = poiId
         if (currentPoiId == null) {
-            PoiDetailUiState(errorMessage = "Missing place ID.")
+            PoiDetailUiState(
+                errorMessage = "Missing place ID.",
+                isLoading = isLoading,
+                dataSourceLabel = dataSourceLabel
+            )
         } else {
             val poi = pois.firstOrNull { it.id == currentPoiId }
             if (poi == null) {
-                PoiDetailUiState(errorMessage = "Place not found.")
+                PoiDetailUiState(
+                    errorMessage = errorMessage ?: if (isLoading) null else "Place not found.",
+                    isLoading = isLoading,
+                    dataSourceLabel = dataSourceLabel
+                )
             } else {
                 PoiDetailUiState(
                     poi = poi,
-                    isFavorite = favoriteIds.contains(poi.id)
+                    isFavorite = favoriteIds.contains(poi.id),
+                    errorMessage = errorMessage,
+                    isLoading = isLoading,
+                    dataSourceLabel = dataSourceLabel
                 )
             }
         }
@@ -48,5 +62,9 @@ class PoiDetailViewModel(
     fun onPrepareMapFocus() {
         val currentPoi = uiState.value.poi ?: return
         repository.setSelectedMapPoi(currentPoi.id)
+    }
+
+    fun clearError() {
+        repository.clearError()
     }
 }

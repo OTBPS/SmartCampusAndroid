@@ -15,12 +15,21 @@ class FakeCampusRepository : CampusRepository {
         )
     )
     private val selectedMapPoiIdState = MutableStateFlow<String?>("poi_library")
+    private val isLoadingState = MutableStateFlow(false)
+    private val errorMessageState = MutableStateFlow<String?>(null)
+    private val dataSourceLabelState = MutableStateFlow("Local fake data")
 
     override fun observePois(): StateFlow<List<Poi>> = poiState.asStateFlow()
 
     override fun observeFavoriteIds(): StateFlow<Set<String>> = favoriteIdsState.asStateFlow()
 
     override fun observeSelectedMapPoiId(): StateFlow<String?> = selectedMapPoiIdState.asStateFlow()
+
+    override fun observeIsLoading(): StateFlow<Boolean> = isLoadingState.asStateFlow()
+
+    override fun observeErrorMessage(): StateFlow<String?> = errorMessageState.asStateFlow()
+
+    override fun observeDataSourceLabel(): StateFlow<String> = dataSourceLabelState.asStateFlow()
 
     override fun getPoiById(poiId: String): Poi? = poiState.value.firstOrNull { it.id == poiId }
 
@@ -40,5 +49,9 @@ class FakeCampusRepository : CampusRepository {
 
     override fun setSelectedMapPoi(poiId: String?) {
         selectedMapPoiIdState.value = poiId
+    }
+
+    override fun clearError() {
+        errorMessageState.value = null
     }
 }

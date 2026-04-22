@@ -20,10 +20,17 @@ class MapViewModel(
         locationStatus
     ) { pois, selectedPoiId, status ->
         val selectedPoi = selectedPoiId?.let { id -> pois.firstOrNull { it.id == id } }
-        val focusMessage = status ?: if (selectedPoi == null) {
-            "No destination focus is set yet."
+        val fallbackCenter = if (pois.isEmpty()) {
+            22.3020 to 114.1775
         } else {
-            "Selected destination is prepared for future Amap marker focus."
+            val latitude = pois.map { it.latitude }.average()
+            val longitude = pois.map { it.longitude }.average()
+            latitude to longitude
+        }
+        val focusMessage = status ?: if (selectedPoi == null) {
+            "No destination selected. Showing campus overview."
+        } else {
+            "Map is focused on the selected destination."
         }
         val destinationHint = if (selectedPoi == null) {
             "Choose a place from Search or open View on Map from Place Detail."
@@ -33,7 +40,9 @@ class MapViewModel(
         MapUiState(
             selectedPoi = selectedPoi,
             focusStatus = focusMessage,
-            destinationHint = destinationHint
+            destinationHint = destinationHint,
+            fallbackCenterLatitude = fallbackCenter.first,
+            fallbackCenterLongitude = fallbackCenter.second
         )
     }.stateIn(
         scope = viewModelScope,

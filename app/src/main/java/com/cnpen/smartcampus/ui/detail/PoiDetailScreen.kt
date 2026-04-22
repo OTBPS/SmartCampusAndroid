@@ -28,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -79,10 +80,30 @@ fun PoiDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = uiState.errorMessage ?: "Unable to load place details.",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Data source: ${uiState.dataSourceLabel}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (uiState.isLoading) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(text = "Loading place details...")
+                    }
+                } else {
+                    Text(
+                        text = uiState.errorMessage ?: "Unable to load place details.",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (uiState.errorMessage != null) {
+                        TextButton(onClick = viewModel::clearError) {
+                            Text(text = "Dismiss")
+                        }
+                    }
+                }
             }
         } else {
             Column(
@@ -93,6 +114,28 @@ fun PoiDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                Text(
+                    text = "Data source: ${uiState.dataSourceLabel}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (uiState.errorMessage != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        TextButton(onClick = viewModel::clearError) {
+                            Text(text = "Dismiss")
+                        }
+                    }
+                }
+
                 DetailTopImage(
                     imageUrl = poi.imageUrl,
                     placeName = poi.name

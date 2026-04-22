@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -94,6 +95,12 @@ fun SearchScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            Text(
+                text = "Data source: ${uiState.dataSourceLabel}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -157,6 +164,45 @@ fun SearchScreen(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
+
+            if (uiState.isLoading) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "Loading places from Firestore...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (uiState.errorMessage != null) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        TextButton(onClick = viewModel::clearError) {
+                            Text(text = "Dismiss")
+                        }
+                    }
+                }
+            }
 
             when (uiState.displayState) {
                 SearchDisplayState.DEFAULT -> {

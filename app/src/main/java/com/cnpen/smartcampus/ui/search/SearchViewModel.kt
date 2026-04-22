@@ -20,7 +20,7 @@ class SearchViewModel(
     private val categoryState = MutableStateFlow<PoiCategory?>(null)
     private val sortState = MutableStateFlow(SearchSortOption.POPULARITY)
 
-    val uiState: StateFlow<SearchUiState> = combine(
+    private val filteredState = combine(
         repository.observePois(),
         repository.observeFavoriteIds(),
         queryState,
@@ -50,6 +50,19 @@ class SearchViewModel(
             },
             resultCount = filtered.size,
             displayState = displayState
+        )
+    }
+
+    val uiState: StateFlow<SearchUiState> = combine(
+        filteredState,
+        repository.observeIsLoading(),
+        repository.observeErrorMessage(),
+        repository.observeDataSourceLabel()
+    ) { filteredUiState, isLoading, errorMessage, dataSourceLabel ->
+        filteredUiState.copy(
+            isLoading = isLoading,
+            errorMessage = errorMessage,
+            dataSourceLabel = dataSourceLabel
         )
     }.stateIn(
         scope = viewModelScope,
@@ -85,6 +98,10 @@ class SearchViewModel(
 
     fun onOpenOnMap(poiId: String) {
         repository.setSelectedMapPoi(poiId)
+    }
+
+    fun clearError() {
+        repository.clearError()
     }
 }
 
