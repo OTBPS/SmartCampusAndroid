@@ -1,6 +1,7 @@
 package com.cnpen.smartcampus.ui.favorites
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,16 +10,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +46,7 @@ import com.cnpen.smartcampus.ui.components.PoiListItemCard
 fun FavoritesScreen(
     onPoiClick: (String) -> Unit,
     onExploreSearchClick: () -> Unit,
+    onOpenMapForRouting: () -> Unit,
     contentPadding: PaddingValues,
     viewModel: FavoritesViewModel
 ) {
@@ -142,14 +158,95 @@ fun FavoritesScreen(
                     }
                 }
                 items(uiState.favorites, key = { it.id }) { poi ->
-                    PoiListItemCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        poi = poi,
-                        onClick = { onPoiClick(poi.id) },
-                        showFavoriteAction = true,
-                        isFavorite = true,
-                        onFavoriteToggle = { viewModel.onRemoveFavorite(poi.id) }
+                    var actionsExpanded by remember(poi.id) { mutableStateOf(false) }
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { dismissValue ->
+                            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                                viewModel.onRemoveFavorite(poi.id)
+                                true
+                            } else {
+                                false
+                            }
+                        }
                     )
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        backgroundContent = {
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Remove favorite",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Text(
+                                        text = "Remove",
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            PoiListItemCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                poi = poi,
+                                onClick = { onPoiClick(poi.id) },
+                                showFavoriteAction = true,
+                                isFavorite = true,
+                                onFavoriteToggle = { viewModel.onRemoveFavorite(poi.id) }
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 8.dp, end = 8.dp)
+                            ) {
+                                IconButton(onClick = { actionsExpanded = true }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreVert,
+                                        contentDescription = "Route actions"
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = actionsExpanded,
+                                    onDismissRequest = { actionsExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(text = "Set as Origin") },
+                                        onClick = {
+                                            actionsExpanded = false
+                                            viewModel.setPoiAsOrigin(poi)
+                                            onOpenMapForRouting()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(text = "Set as Destination") },
+                                        onClick = {
+                                            actionsExpanded = false
+                                            viewModel.setPoiAsDestination(poi)
+                                            onOpenMapForRouting()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(text = "Add as Waypoint") },
+                                        onClick = {
+                                            actionsExpanded = false
+                                            viewModel.addPoiAsWaypoint(poi)
+                                            onOpenMapForRouting()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

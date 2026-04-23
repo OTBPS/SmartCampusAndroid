@@ -14,7 +14,7 @@ class FakeCampusRepository : CampusRepository {
             "poi_cafeteria"
         )
     )
-    private val selectedMapPoiIdState = MutableStateFlow<String?>("poi_library")
+    private val selectedMapPoiIdState = MutableStateFlow<String?>(null)
     private val isLoadingState = MutableStateFlow(false)
     private val errorMessageState = MutableStateFlow<String?>(null)
     private val dataSourceLabelState = MutableStateFlow("Local fake data")

@@ -214,11 +214,11 @@ fun PoiDetailScreen(
                     Button(
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            viewModel.onPrepareMapFocus()
+                            viewModel.onDirections()
                             onViewOnMap()
                         }
                     ) {
-                        Text(text = "View on Map")
+                        Text(text = "Directions")
                     }
                 }
             }

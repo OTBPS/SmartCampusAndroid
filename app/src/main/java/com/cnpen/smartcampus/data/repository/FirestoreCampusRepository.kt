@@ -1,8 +1,10 @@
 package com.cnpen.smartcampus.data.repository
 
+import android.util.Log
 import com.cnpen.smartcampus.data.mapper.toPoiOrNull
 import com.cnpen.smartcampus.data.model.Poi
 import com.cnpen.smartcampus.data.remote.firestore.DebugFirestorePoiSeeder
+import com.cnpen.smartcampus.data.remote.firestore.DebugFirestorePoiSeedData
 import com.cnpen.smartcampus.data.remote.firestore.FirestoreCampusSchema
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,12 +17,16 @@ import kotlinx.coroutines.flow.update
 class FirestoreCampusRepository(
     private val firestore: FirebaseFirestore,
     private val fallbackPois: List<Poi> = FakeCampusDataSource.poiList,
+    private val debugSeedPois: List<Poi> = DebugFirestorePoiSeedData.poiList,
     private val enableDebugSeed: Boolean = false
 ) : CampusRepository {
+    private companion object {
+        const val TAG = "NUIST_POI_SEED"
+    }
 
     private val poiState = MutableStateFlow(emptyList<Poi>())
     private val favoriteIdsState = MutableStateFlow(emptySet<String>())
-    private val selectedMapPoiIdState = MutableStateFlow(fallbackPois.firstOrNull()?.id)
+    private val selectedMapPoiIdState = MutableStateFlow<String?>(null)
     private val isLoadingState = MutableStateFlow(true)
     private val errorMessageState = MutableStateFlow<String?>(null)
     private val dataSourceLabelState = MutableStateFlow("Loading Firestore data...")
@@ -32,9 +38,17 @@ class FirestoreCampusRepository(
     private var favoritesListener: ListenerRegistration? = null
 
     init {
+        Log.d(
+            TAG,
+            "FirestoreCampusRepository init: enableDebugSeed=$enableDebugSeed, debugSeedPoisSize=${debugSeedPois.size}, poisCollection=${FirestoreCampusSchema.POIS_COLLECTION}"
+        )
+        if (debugSeedPois.size != 10) {
+            Log.w(TAG, "Unexpected debug seed dataset size: ${debugSeedPois.size} (expected 10)")
+        }
+
         DebugFirestorePoiSeeder.seedPoisIfEmpty(
             firestore = firestore,
-            seedPois = fallbackPois,
+            seedPois = debugSeedPois,
             enabled = enableDebugSeed,
             onError = { message ->
                 errorMessageState.value = message
@@ -126,9 +140,9 @@ class FirestoreCampusRepository(
     private fun ensureSelectedPoiIsValid() {
         val current = selectedMapPoiIdState.value
         val currentList = poiState.value
-        val hasCurrent = current != null && currentList.any { it.id == current }
+        val hasCurrent = current == null || currentList.any { it.id == current }
         if (!hasCurrent) {
-            selectedMapPoiIdState.value = currentList.firstOrNull()?.id
+            selectedMapPoiIdState.value = null
         }
     }
 

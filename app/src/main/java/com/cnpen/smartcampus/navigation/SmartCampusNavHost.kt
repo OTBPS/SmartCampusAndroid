@@ -14,9 +14,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.navArgument
 import com.cnpen.smartcampus.SmartCampusApplication
 import com.cnpen.smartcampus.di.SmartCampusViewModelFactory
@@ -32,10 +34,13 @@ import com.cnpen.smartcampus.ui.map.MapScreen
 import com.cnpen.smartcampus.ui.map.MapViewModel
 import com.cnpen.smartcampus.ui.search.SearchScreen
 import com.cnpen.smartcampus.ui.search.SearchViewModel
+import com.cnpen.smartcampus.ui.theme.ThemeMode
 
 @Composable
 fun SmartCampusNavHost(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    selectedThemeMode: ThemeMode,
+    onThemeModeSelected: (ThemeMode) -> Unit
 ) {
     val context = LocalContext.current
     val appContainer = remember(context) {
@@ -46,8 +51,20 @@ fun SmartCampusNavHost(
     }
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
     val shouldShowBottomBar = currentRoute != AppDestination.PoiDetail.route
+    val navigateToTopLevel: (AppDestination) -> Unit = remember(navController) {
+        { destination ->
+            navController.navigate(destination.route) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -56,15 +73,11 @@ fun SmartCampusNavHost(
                 NavigationBar {
                     bottomNavItems.forEach { item ->
                         NavigationBarItem(
-                            selected = currentRoute == item.destination.route,
+                            selected = currentDestination
+                                ?.hierarchy
+                                ?.any { it.route == item.destination.route } == true,
                             onClick = {
-                                navController.navigate(item.destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                navigateToTopLevel(item.destination)
                             },
                             icon = {
                                 Icon(
@@ -83,16 +96,18 @@ fun SmartCampusNavHost(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppDestination.Home.route,
+            startDestination = AppDestination.Map.route,
             modifier = Modifier
         ) {
             composable(AppDestination.Home.route) {
                 val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
                 HomeScreen(
-                    onQuickSearchClick = { navController.navigate(AppDestination.Search.route) },
-                    onQuickMapClick = { navController.navigate(AppDestination.Map.route) },
-                    onQuickFavoritesClick = { navController.navigate(AppDestination.Favorites.route) },
-                    onQuickAssistantClick = { navController.navigate(AppDestination.Assistant.route) },
+                    onQuickSearchClick = { navigateToTopLevel(AppDestination.Search) },
+                    onQuickMapClick = { navigateToTopLevel(AppDestination.Map) },
+                    onQuickFavoritesClick = { navigateToTopLevel(AppDestination.Favorites) },
+                    onQuickAssistantClick = { navigateToTopLevel(AppDestination.Assistant) },
+                    selectedThemeMode = selectedThemeMode,
+                    onThemeModeSelected = onThemeModeSelected,
                     onPoiClick = { poiId ->
                         navController.navigate(AppDestination.PoiDetail.routeFor(poiId))
                     },
@@ -107,13 +122,7 @@ fun SmartCampusNavHost(
                         navController.navigate(AppDestination.PoiDetail.routeFor(poiId))
                     },
                     onOpenMapWithPoi = { _ ->
-                        navController.navigate(AppDestination.Map.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        navigateToTopLevel(AppDestination.Map)
                     },
                     contentPadding = innerPadding,
                     viewModel = searchViewModel
@@ -123,6 +132,9 @@ fun SmartCampusNavHost(
                 val mapViewModel: MapViewModel = viewModel(factory = viewModelFactory)
                 MapScreen(
                     contentPadding = innerPadding,
+                    onOpenSearchClick = {
+                        navigateToTopLevel(AppDestination.Search)
+                    },
                     onViewDetailClick = { poiId ->
                         navController.navigate(AppDestination.PoiDetail.routeFor(poiId))
                     },
@@ -136,9 +148,10 @@ fun SmartCampusNavHost(
                         navController.navigate(AppDestination.PoiDetail.routeFor(poiId))
                     },
                     onExploreSearchClick = {
-                        navController.navigate(AppDestination.Search.route) {
-                            launchSingleTop = true
-                        }
+                        navigateToTopLevel(AppDestination.Search)
+                    },
+                    onOpenMapForRouting = {
+                        navigateToTopLevel(AppDestination.Map)
                     },
                     contentPadding = innerPadding,
                     viewModel = favoritesViewModel
@@ -163,13 +176,7 @@ fun SmartCampusNavHost(
                 PoiDetailScreen(
                     onBackClick = { navController.navigateUp() },
                     onViewOnMap = {
-                        navController.navigate(AppDestination.Map.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        navigateToTopLevel(AppDestination.Map)
                     },
                     viewModel = detailViewModel
                 )

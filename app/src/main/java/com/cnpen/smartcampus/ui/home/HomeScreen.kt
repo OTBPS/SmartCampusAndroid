@@ -3,6 +3,7 @@ package com.cnpen.smartcampus.ui.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cnpen.smartcampus.ui.components.PoiListItemCard
 import com.cnpen.smartcampus.ui.components.QuickActionCard
+import com.cnpen.smartcampus.ui.theme.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +38,8 @@ fun HomeScreen(
     onQuickMapClick: () -> Unit,
     onQuickFavoritesClick: () -> Unit,
     onQuickAssistantClick: () -> Unit,
+    selectedThemeMode: ThemeMode,
+    onThemeModeSelected: (ThemeMode) -> Unit,
     onPoiClick: (String) -> Unit,
     contentPadding: PaddingValues,
     viewModel: HomeViewModel
@@ -96,6 +101,36 @@ fun HomeScreen(
                             modifier = Modifier.align(androidx.compose.ui.Alignment.End)
                         ) {
                             Text(text = "Open Search")
+                        }
+                    }
+                }
+            }
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Theme Mode",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Choose how the app appearance is applied.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ThemeMode.entries.forEach { mode ->
+                                FilterChip(
+                                    selected = selectedThemeMode == mode,
+                                    onClick = { onThemeModeSelected(mode) },
+                                    label = { Text(text = mode.label) }
+                                )
+                            }
                         }
                     }
                 }

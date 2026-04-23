@@ -6,16 +6,16 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
-}
-
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use(localProperties::load)
 }
 val amapApiKey = localProperties.getProperty("AMAP_API_KEY", "")
+val amapWebApiKey = localProperties.getProperty("AMAP_WEB_API_KEY", "")
+val escapedAmapWebApiKey = amapWebApiKey
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 android {
     namespace = "com.cnpen.smartcampus"
@@ -33,6 +33,7 @@ android {
             useSupportLibrary = true
         }
         manifestPlaceholders["AMAP_API_KEY"] = amapApiKey
+        buildConfigField("String", "AMAP_WEB_API_KEY", "\"$escapedAmapWebApiKey\"")
     }
 
     buildTypes {
@@ -52,6 +53,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -76,9 +78,11 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.amap.api:3dmap:10.0.600")
+    implementation("com.amap.api:search:9.7.0")
     implementation("io.coil-kt:coil:2.7.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
 

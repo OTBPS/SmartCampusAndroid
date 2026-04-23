@@ -3,16 +3,23 @@ package com.cnpen.smartcampus.ui.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cnpen.smartcampus.data.model.Poi
+import com.cnpen.smartcampus.data.model.RouteEntrySource
+import com.cnpen.smartcampus.data.model.RoutePoint
+import com.cnpen.smartcampus.data.model.RoutePointType
 import com.cnpen.smartcampus.data.repository.CampusRepository
+import com.cnpen.smartcampus.data.route.RoutePlanRepository
 import com.cnpen.smartcampus.navigation.AppDestination
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class PoiDetailViewModel(
     savedStateHandle: SavedStateHandle,
-    private val repository: CampusRepository
+    private val repository: CampusRepository,
+    private val routePlanRepository: RoutePlanRepository
 ) : ViewModel() {
     private val poiId: String? = savedStateHandle[AppDestination.PoiDetail.POI_ID_ARG]
 
@@ -64,7 +71,30 @@ class PoiDetailViewModel(
         repository.setSelectedMapPoi(currentPoi.id)
     }
 
+    fun onDirections() {
+        val currentPoi = uiState.value.poi ?: return
+        repository.setSelectedMapPoi(currentPoi.id)
+        routePlanRepository.startRoutePlanning(RouteEntrySource.POI_DETAIL)
+        routePlanRepository.setDestination(currentPoi.toRoutePoint(RoutePointType.DESTINATION))
+        if (routePlanRepository.getCurrentRoutePlanState().canCalculate) {
+            viewModelScope.launch {
+                routePlanRepository.calculateRoute()
+            }
+        }
+    }
+
     fun clearError() {
         repository.clearError()
     }
 }
+
+private fun Poi.toRoutePoint(type: RoutePointType): RoutePoint =
+    RoutePoint(
+        id = "${id}_${type.name.lowercase()}",
+        poiId = id,
+        label = name,
+        subtitle = building,
+        latitude = latitude,
+        longitude = longitude,
+        type = type
+    )
