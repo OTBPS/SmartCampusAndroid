@@ -18,13 +18,14 @@ class SmartCampusViewModelFactory(
     private val repository = appContainer.campusRepository
     private val themePreferenceRepository = appContainer.themePreferenceRepository
     private val routePlanRepository = appContainer.routePlanRepository
+    private val assistantRepository = appContainer.assistantRepository
 
     val factory: ViewModelProvider.Factory = viewModelFactory {
         initializer { HomeViewModel(repository) }
-        initializer { SearchViewModel(repository) }
+        initializer { SearchViewModel(repository, routePlanRepository) }
         initializer { MapViewModel(repository, routePlanRepository) }
         initializer { FavoritesViewModel(repository, routePlanRepository) }
-        initializer { AssistantViewModel() }
+        initializer { AssistantViewModel(assistantRepository) }
         initializer { PoiDetailViewModel(createSavedStateHandle(), repository, routePlanRepository) }
         initializer { ThemeSettingsViewModel(themePreferenceRepository) }
     }

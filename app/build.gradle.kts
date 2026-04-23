@@ -16,6 +16,18 @@ val amapWebApiKey = localProperties.getProperty("AMAP_WEB_API_KEY", "")
 val escapedAmapWebApiKey = amapWebApiKey
     .replace("\\", "\\\\")
     .replace("\"", "\\\"")
+val deepSeekBaseUrl = localProperties.getProperty("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+val deepSeekModel = localProperties.getProperty("DEEPSEEK_MODEL", "deepseek-chat")
+val deepSeekApiKey = localProperties.getProperty("DEEPSEEK_API_KEY", "")
+val escapedDeepSeekBaseUrl = deepSeekBaseUrl
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+val escapedDeepSeekModel = deepSeekModel
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+val escapedDeepSeekApiKey = deepSeekApiKey
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 android {
     namespace = "com.cnpen.smartcampus"
@@ -34,6 +46,9 @@ android {
         }
         manifestPlaceholders["AMAP_API_KEY"] = amapApiKey
         buildConfigField("String", "AMAP_WEB_API_KEY", "\"$escapedAmapWebApiKey\"")
+        buildConfigField("String", "DEEPSEEK_BASE_URL", "\"$escapedDeepSeekBaseUrl\"")
+        buildConfigField("String", "DEEPSEEK_MODEL", "\"$escapedDeepSeekModel\"")
+        buildConfigField("String", "DEEPSEEK_API_KEY", "\"$escapedDeepSeekApiKey\"")
     }
 
     buildTypes {

@@ -30,20 +30,23 @@ object DebugFirestorePoiSeeder {
         }
 
         val poiCollection = firestore.collection(FirestoreCampusSchema.POIS_COLLECTION)
-        poiCollection.limit(1).get()
+        poiCollection.get()
             .addOnSuccessListener { snapshot ->
+                val existingIds = snapshot.documents.map { it.id }.toSet()
+                val missingPois = seedPois.filterNot { existingIds.contains(it.id) }
+
                 Log.d(
                     TAG,
-                    "Collection empty check: collection=${FirestoreCampusSchema.POIS_COLLECTION}, snapshotSize=${snapshot.size()}, isEmpty=${snapshot.isEmpty}"
+                    "Collection check: collection=${FirestoreCampusSchema.POIS_COLLECTION}, snapshotSize=${snapshot.size()}, isEmpty=${snapshot.isEmpty}, missingCount=${missingPois.size}"
                 )
 
-                if (!snapshot.isEmpty) {
-                    Log.d(TAG, "Skip commit: collection is not empty")
+                if (missingPois.isEmpty()) {
+                    Log.d(TAG, "Skip commit: no missing POIs to seed")
                     return@addOnSuccessListener
                 }
 
                 val batch = firestore.batch()
-                seedPois.forEach { poi ->
+                missingPois.forEach { poi ->
                     val documentRef = poiCollection.document(poi.id)
                     batch.set(documentRef, poi.toFirestoreSeedMap())
                 }
@@ -51,7 +54,7 @@ object DebugFirestorePoiSeeder {
                     .addOnSuccessListener {
                         Log.i(
                             TAG,
-                            "Seed commit success: collection=${FirestoreCampusSchema.POIS_COLLECTION}, insertedCount=${seedPois.size}"
+                            "Seed commit success: collection=${FirestoreCampusSchema.POIS_COLLECTION}, insertedCount=${missingPois.size}, existingCount=${existingIds.size}"
                         )
                     }
                     .addOnFailureListener { error ->

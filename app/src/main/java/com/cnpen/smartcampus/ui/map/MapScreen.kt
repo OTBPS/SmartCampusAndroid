@@ -260,20 +260,32 @@ fun MapScreen(
         }
     }
 
+    val activeRouteOrigin = if (routePlan.isRoutePlanningActive) routePlan.origin else null
+    val activeRouteDestination = if (routePlan.isRoutePlanningActive) routePlan.destination else null
+    val activeRouteWaypoints = if (routePlan.isRoutePlanningActive) routePlan.waypoints else emptyList()
+    val activeRouteAlternatives = if (routePlan.isRoutePlanningActive) routePlan.alternatives else emptyList()
+    val activeSelectedRoute =
+        if (routePlan.isRoutePlanningActive) routePlan.selectedAlternative else null
+    val activeSelectedAlternativeIndex =
+        if (routePlan.isRoutePlanningActive) routePlan.selectedAlternativeIndex else -1
+
     LaunchedEffect(
         aMap,
+        mapStatus,
         uiState.selectedPoi,
         uiState.fallbackCenterLatitude,
         uiState.fallbackCenterLongitude,
         uiState.fallbackZoom,
-        routePlan.origin,
-        routePlan.destination,
-        routePlan.waypoints,
-        routePlan.selectedAlternative,
-        routePlan.selectedAlternativeIndex,
-        routePlan.alternatives
+        routePlan.isRoutePlanningActive,
+        activeRouteOrigin,
+        activeRouteDestination,
+        activeRouteWaypoints,
+        activeSelectedRoute,
+        activeSelectedAlternativeIndex,
+        activeRouteAlternatives
     ) {
         val map = aMap ?: return@LaunchedEffect
+        if (mapStatus !is MapRuntimeStatus.Ready) return@LaunchedEffect
 
         selectedPoiMarker?.remove()
         selectedPoiMarker = null
@@ -286,7 +298,7 @@ fun MapScreen(
         routePolylines.forEach { it.remove() }
         routePolylines.clear()
 
-        routePlan.origin?.let { origin ->
+        activeRouteOrigin?.let { origin ->
             originMarker = map.addMarker(
                 MarkerOptions()
                     .position(origin.toLatLng())
@@ -295,7 +307,7 @@ fun MapScreen(
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
         }
-        routePlan.destination?.let { destination ->
+        activeRouteDestination?.let { destination ->
             destinationMarker = map.addMarker(
                 MarkerOptions()
                     .position(destination.toLatLng())
@@ -304,7 +316,7 @@ fun MapScreen(
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
             )
         }
-        routePlan.waypoints.forEachIndexed { index, waypoint ->
+        activeRouteWaypoints.forEachIndexed { index, waypoint ->
             map.addMarker(
                 MarkerOptions()
                     .position(waypoint.toLatLng())
@@ -314,8 +326,8 @@ fun MapScreen(
             )?.let(waypointMarkers::add)
         }
 
-        val selectedIndex = routePlan.selectedAlternativeIndex
-        routePlan.alternatives.forEachIndexed { index, alternative ->
+        val selectedIndex = activeSelectedAlternativeIndex
+        activeRouteAlternatives.forEachIndexed { index, alternative ->
             val points = alternative.polylinePoints.map { LatLng(it.latitude, it.longitude) }
             if (points.size < 2) return@forEachIndexed
             map.addPolyline(
@@ -333,17 +345,17 @@ fun MapScreen(
             )?.let(routePolylines::add)
         }
 
-        val selectedRoute = routePlan.selectedAlternative
+        val selectedRoute = activeSelectedRoute
         if (selectedRoute != null && selectedRoute.polylinePoints.isNotEmpty()) {
-            val routeKey = "${selectedRoute.id}_${routePlan.selectedAlternativeIndex}"
+            val routeKey = "${selectedRoute.id}_$activeSelectedAlternativeIndex"
             if (focusedRouteId != routeKey) {
                 val boundsBuilder = LatLngBounds.builder()
                 selectedRoute.polylinePoints.forEach { point ->
                     boundsBuilder.include(LatLng(point.latitude, point.longitude))
                 }
-                routePlan.origin?.let { boundsBuilder.include(it.toLatLng()) }
-                routePlan.destination?.let { boundsBuilder.include(it.toLatLng()) }
-                routePlan.waypoints.forEach { boundsBuilder.include(it.toLatLng()) }
+                activeRouteOrigin?.let { boundsBuilder.include(it.toLatLng()) }
+                activeRouteDestination?.let { boundsBuilder.include(it.toLatLng()) }
+                activeRouteWaypoints.forEach { boundsBuilder.include(it.toLatLng()) }
                 runCatching {
                     map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 120))
                 }
@@ -356,7 +368,7 @@ fun MapScreen(
 
         focusedRouteId = null
         val selectedPoi = uiState.selectedPoi
-        if (selectedPoi != null && routePlan.destination == null) {
+        if (selectedPoi != null && activeRouteDestination == null) {
             val target = LatLng(selectedPoi.latitude, selectedPoi.longitude)
             selectedPoiMarker = map.addMarker(
                 MarkerOptions()
@@ -368,6 +380,13 @@ fun MapScreen(
             if (focusedPoiId != selectedPoi.id) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(target, MAP_ZOOM_SELECTED_POI))
                 focusedPoiId = selectedPoi.id
+            }
+            centeredFallback = false
+        } else if (activeRouteDestination != null) {
+            val target = activeRouteDestination.toLatLng()
+            if (focusedPoiId != activeRouteDestination.id) {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(target, MAP_ZOOM_SELECTED_POI))
+                focusedPoiId = activeRouteDestination.id
             }
             centeredFallback = false
         } else {

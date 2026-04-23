@@ -22,6 +22,7 @@ class FirestoreCampusRepository(
 ) : CampusRepository {
     private companion object {
         const val TAG = "NUIST_POI_SEED"
+        const val MIN_DEBUG_SEED_SIZE = 50
     }
 
     private val poiState = MutableStateFlow(emptyList<Poi>())
@@ -42,8 +43,11 @@ class FirestoreCampusRepository(
             TAG,
             "FirestoreCampusRepository init: enableDebugSeed=$enableDebugSeed, debugSeedPoisSize=${debugSeedPois.size}, poisCollection=${FirestoreCampusSchema.POIS_COLLECTION}"
         )
-        if (debugSeedPois.size != 10) {
-            Log.w(TAG, "Unexpected debug seed dataset size: ${debugSeedPois.size} (expected 10)")
+        if (debugSeedPois.size < MIN_DEBUG_SEED_SIZE) {
+            Log.w(
+                TAG,
+                "Debug seed dataset looks too small: ${debugSeedPois.size} (expected at least $MIN_DEBUG_SEED_SIZE)"
+            )
         }
 
         DebugFirestorePoiSeeder.seedPoisIfEmpty(

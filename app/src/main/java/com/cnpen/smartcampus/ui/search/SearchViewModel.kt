@@ -4,17 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cnpen.smartcampus.data.model.Poi
 import com.cnpen.smartcampus.data.model.PoiCategory
+import com.cnpen.smartcampus.data.model.RouteEntrySource
+import com.cnpen.smartcampus.data.model.RoutePoint
+import com.cnpen.smartcampus.data.model.RoutePointType
 import com.cnpen.smartcampus.data.model.SearchSortOption
 import com.cnpen.smartcampus.data.repository.CampusRepository
+import com.cnpen.smartcampus.data.route.RoutePlanRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class SearchViewModel(
-    private val repository: CampusRepository
+    private val repository: CampusRepository,
+    private val routePlanRepository: RoutePlanRepository
 ) : ViewModel() {
     private val queryState = MutableStateFlow("")
     private val categoryState = MutableStateFlow<PoiCategory?>(null)
@@ -98,6 +104,17 @@ class SearchViewModel(
 
     fun onOpenOnMap(poiId: String) {
         repository.setSelectedMapPoi(poiId)
+        val selectedPoi = repository.getPoiById(poiId) ?: return
+        val routeState = routePlanRepository.getCurrentRoutePlanState()
+        if (!routeState.isRoutePlanningActive) return
+
+        routePlanRepository.startRoutePlanning(RouteEntrySource.SEARCH)
+        routePlanRepository.setDestination(selectedPoi.toDestinationRoutePoint())
+        if (routePlanRepository.getCurrentRoutePlanState().canCalculate) {
+            viewModelScope.launch {
+                routePlanRepository.calculateRoute()
+            }
+        }
     }
 
     fun clearError() {
@@ -128,3 +145,14 @@ private fun List<Poi>.sortedByOption(sort: SearchSortOption): List<Poi> =
         SearchSortOption.CATEGORY -> sortedWith(compareBy({ it.category.label }, { it.name.lowercase() }))
         SearchSortOption.POPULARITY -> sortedByDescending { it.popularity }
     }
+
+private fun Poi.toDestinationRoutePoint(): RoutePoint =
+    RoutePoint(
+        id = "${id}_${RoutePointType.DESTINATION.name.lowercase()}",
+        poiId = id,
+        label = name,
+        subtitle = building,
+        latitude = latitude,
+        longitude = longitude,
+        type = RoutePointType.DESTINATION
+    )

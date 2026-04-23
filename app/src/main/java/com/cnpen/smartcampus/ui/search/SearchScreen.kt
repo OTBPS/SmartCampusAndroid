@@ -63,7 +63,7 @@ fun SearchScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(contentPadding)
+                .padding(bottom = contentPadding.calculateBottomPadding())
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -87,18 +87,6 @@ fun SearchScreen(
                     }
                 },
                 singleLine = true
-            )
-
-            Text(
-                text = "Search by keyword, then refine with category and sorting.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Text(
-                text = "Data source: ${uiState.dataSourceLabel}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             LazyRow(
@@ -205,15 +193,7 @@ fun SearchScreen(
             }
 
             when (uiState.displayState) {
-                SearchDisplayState.DEFAULT -> {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Browsing all places. Enter a keyword or select a category to narrow results.",
-                            modifier = Modifier.padding(14.dp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                SearchDisplayState.DEFAULT -> Unit
 
                 SearchDisplayState.FILTERED -> {
                     Text(

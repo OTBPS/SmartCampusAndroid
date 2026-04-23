@@ -30,27 +30,32 @@ class AMapWebRoutePlanningService : RoutePlanningService {
             )
         }
 
-        val url = buildRouteUrl(
-            key = webApiKey,
-            origin = origin,
-            destination = destination,
-            waypoints = waypoints,
-            routeMode = routeMode
-        )
-        if (url == null) {
-            return@withContext RouteServiceResult.Failure(
-                message = "Unsupported route mode."
-            )
-        }
-
         runCatching {
-            requestJson(url)
-        }.fold(
-            onSuccess = { response ->
+            if (routeMode == RouteMode.WALKING && waypoints.isNotEmpty()) {
+                calculateWalkingRouteWithWaypoints(
+                    key = webApiKey,
+                    origin = origin,
+                    destination = destination,
+                    waypoints = waypoints
+                )
+            } else {
+                val url = buildRouteUrl(
+                    key = webApiKey,
+                    origin = origin,
+                    destination = destination,
+                    waypoints = waypoints,
+                    routeMode = routeMode
+                ) ?: return@runCatching RouteServiceResult.Failure(
+                    message = "Unsupported route mode."
+                )
                 parseRouteResponse(
-                    response = response,
+                    response = requestJson(url),
                     routeMode = routeMode
                 )
+            }
+        }.fold(
+            onSuccess = { result ->
+                result
             },
             onFailure = { throwable ->
                 Log.e(TAG, "AMap Web route request failed.", throwable)
@@ -182,6 +187,109 @@ class AMapWebRoutePlanningService : RoutePlanningService {
             return RouteServiceResult.Failure("AMap route data contains no drawable polyline.")
         }
         return RouteServiceResult.Success(alternatives)
+    }
+
+    private fun calculateWalkingRouteWithWaypoints(
+        key: String,
+        origin: RoutePoint,
+        destination: RoutePoint,
+        waypoints: List<RoutePoint>
+    ): RouteServiceResult {
+        val segments = listOf(origin) + waypoints + destination
+        if (segments.size < 2) {
+            return RouteServiceResult.Failure("Walking route requires origin and destination.")
+        }
+
+        val mergedPolyline = mutableListOf<RouteCoordinate>()
+        var totalDistance = 0f
+        var totalDuration = 0L
+        var totalSteps = 0
+        val instructionSnippets = mutableListOf<String>()
+
+        for (index in 0 until segments.lastIndex) {
+            val segmentOrigin = segments[index]
+            val segmentDestination = segments[index + 1]
+            val url = buildRouteUrl(
+                key = key,
+                origin = segmentOrigin,
+                destination = segmentDestination,
+                waypoints = emptyList(),
+                routeMode = RouteMode.WALKING
+            ) ?: return RouteServiceResult.Failure("Unsupported walking route segment.")
+
+            val segmentResult = parseRouteResponse(
+                response = requestJson(url),
+                routeMode = RouteMode.WALKING
+            )
+
+            when (segmentResult) {
+                is RouteServiceResult.Failure -> {
+                    return RouteServiceResult.Failure(
+                        message = "Walking segment ${index + 1} failed: ${segmentResult.message}",
+                        errorCode = segmentResult.errorCode
+                    )
+                }
+
+                is RouteServiceResult.Success -> {
+                    val firstAlternative = segmentResult.alternatives.firstOrNull()
+                        ?: return RouteServiceResult.Failure(
+                            "Walking segment ${index + 1} returned no route."
+                        )
+
+                    totalDistance += firstAlternative.distanceMeters
+                    totalDuration += firstAlternative.durationSeconds
+                    totalSteps += firstAlternative.stepCount
+                    appendDistinctPolyline(
+                        target = mergedPolyline,
+                        additional = firstAlternative.polylinePoints
+                    )
+                    firstAlternative.instructionSummary
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let(instructionSnippets::add)
+                }
+            }
+        }
+
+        if (mergedPolyline.size < 2) {
+            return RouteServiceResult.Failure("Walking route with waypoints has no drawable polyline.")
+        }
+
+        val summary = buildString {
+            if (instructionSnippets.isNotEmpty()) {
+                append(instructionSnippets.first())
+            } else {
+                append("Walking route")
+            }
+            append(" via ")
+            append(waypoints.size)
+            append(if (waypoints.size == 1) " stop." else " stops.")
+        }
+
+        return RouteServiceResult.Success(
+            alternatives = listOf(
+                RouteAlternative(
+                    id = "walking_waypoints_0",
+                    mode = RouteMode.WALKING,
+                    distanceMeters = totalDistance,
+                    durationSeconds = totalDuration,
+                    polylinePoints = mergedPolyline,
+                    stepCount = totalSteps,
+                    instructionSummary = summary
+                )
+            )
+        )
+    }
+
+    private fun appendDistinctPolyline(
+        target: MutableList<RouteCoordinate>,
+        additional: List<RouteCoordinate>
+    ) {
+        for (point in additional) {
+            val last = target.lastOrNull()
+            if (last == null || last.latitude != point.latitude || last.longitude != point.longitude) {
+                target += point
+            }
+        }
     }
 
     private fun parsePathPolyline(path: JSONObject): List<RouteCoordinate> {
